@@ -6,7 +6,6 @@
   - Responsive design (simple, beginner style)
   - Frontend: React (HTML, CSS, JS)
   - Backend: Node.js (Express.js), MongoDB, JWT
-  - Firebase integration
   - Deployment: Heroku (backend), Netlify (frontend)
 
 - [x] Scaffold the Project

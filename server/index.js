@@ -11,14 +11,25 @@ app.use(cors());
 
 let mongoReadyPromise = null;
 let memoryServer = null; // reference to in-memory mongo for cleanup
+// Helper function to check if a module exists
+function moduleExists(moduleName) {
+  try {
+    require.resolve(moduleName);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 async function connectDB() {
   if (mongoReadyPromise) return mongoReadyPromise;
-  // Prefer the real MongoDB when available. For tests we always use an
-  // in-memory server. For local development, if the configured MONGO_URI
-  // (e.g. Atlas) fails to connect we fall back to an in-memory MongoDB
-  // so the app remains usable without external network access.
-  const { MongoMemoryServer } = require('mongodb-memory-server');
+  
   if (process.env.NODE_ENV === 'test') {
+    // Only require mongodb-memory-server in test environment
+    if (!moduleExists('mongodb-memory-server')) {
+      throw new Error('mongodb-memory-server is required for tests but not installed');
+    }
+    const { MongoMemoryServer } = require('mongodb-memory-server');
     memoryServer = await MongoMemoryServer.create();
     const uri = memoryServer.getUri();
     mongoReadyPromise = mongoose.connect(uri, {});
@@ -26,21 +37,40 @@ async function connectDB() {
   }
 
   const uri = process.env.MONGO_URI || 'mongodb://localhost:27017/taskdb';
-  const connectOpts = { serverSelectionTimeoutMS: 5000 };
+  const connectOpts = { serverSelectionTimeoutMS: 10000 };
+  
   try {
     mongoReadyPromise = mongoose.connect(uri, connectOpts);
     await mongoReadyPromise;
     console.log('Connected to MongoDB');
     return mongoReadyPromise;
   } catch (err) {
-    console.error('Primary MongoDB connection failed — falling back to in-memory MongoDB:', err.message);
-    // start an in-memory mongo for local/dev use
-    memoryServer = await MongoMemoryServer.create();
-    const memUri = memoryServer.getUri();
-    mongoReadyPromise = mongoose.connect(memUri, {});
-    await mongoReadyPromise;
-    console.log('Connected to in-memory MongoDB');
-    return mongoReadyPromise;
+    console.error('MongoDB connection failed:', err.message);
+    
+    // In production, don't fall back to in-memory - just fail
+    if (process.env.NODE_ENV === 'production') {
+      console.error('Production deployment failed to connect to MongoDB. Please check your MONGO_URI environment variable.');
+      throw err;
+    }
+    
+    // Only in development, try to fall back to in-memory MongoDB if available
+    if (moduleExists('mongodb-memory-server')) {
+      console.log('Attempting fallback to in-memory MongoDB for development...');
+      try {
+        const { MongoMemoryServer } = require('mongodb-memory-server');
+        memoryServer = await MongoMemoryServer.create();
+        const memUri = memoryServer.getUri();
+        mongoReadyPromise = mongoose.connect(memUri, {});
+        await mongoReadyPromise;
+        console.log('Connected to in-memory MongoDB');
+        return mongoReadyPromise;
+      } catch (fallbackErr) {
+        console.error('Could not create fallback in-memory database:', fallbackErr.message);
+      }
+    }
+    
+    // If we get here, all connection attempts failed
+    throw err;
   }
 }
 

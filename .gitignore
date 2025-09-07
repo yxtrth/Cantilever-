@@ -8,3 +8,6 @@ dist/
 build/
 /*.log
 coverage/
+*.tmp
+*.temp
+quick_e2e.js
