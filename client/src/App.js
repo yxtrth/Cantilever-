@@ -98,63 +98,117 @@ function App() {
           {token ? <button className="logout-btn" onClick={handleLogout}>Logout</button> : null}
         </div>
       </div>
-      {error && <div style={{color:'red', maxWidth:1100, margin:'0 auto 12px'}}>{error}</div>}
+      {error && <div className="error-message">{error}</div>}
       {!token ? (
-        <div>
-          <h3>Register / Login</h3>
-          <input placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} />
-          <input placeholder="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} />
-          <button onClick={handleRegister}>Register</button>
-          <button onClick={handleLogin}>Login</button>
+        <div className="auth-container">
+          <h3>Welcome Back! 🚀</h3>
+          <input 
+            className="auth-input" 
+            placeholder="Enter your username" 
+            value={username} 
+            onChange={e => setUsername(e.target.value)} 
+          />
+          <input 
+            className="auth-input" 
+            placeholder="Enter your password" 
+            type="password" 
+            value={password} 
+            onChange={e => setPassword(e.target.value)} 
+          />
+          <div className="auth-buttons">
+            <button className="btn-register" onClick={handleRegister}>Create Account</button>
+            <button className="btn-login" onClick={handleLogin}>Sign In</button>
+          </div>
         </div>
       ) : (
         <div className="card-grid">
           <div>
             <div className="card">
-              <h3>Tasks</h3>
-              <input className="task-input" placeholder="New Task" value={newTask} onChange={e => setNewTask(e.target.value)} />
-              <button className="primary full-width" onClick={handleAddTask}>Add Task</button>
-              <div style={{marginTop:12}}>
-                <label>Filter:</label>
-                <input className="task-input" value={filter} onChange={e => setFilter(e.target.value)} />
-                <label>Sort:</label>
-                <select className="task-input" value={sort} onChange={e => setSort(e.target.value)}>
-                  <option value="">None</option>
-                  <option value="asc">A → Z</option>
-                  <option value="desc">Z → A</option>
-                </select>
+              <h3>✅ My Tasks</h3>
+              <input 
+                className="task-input" 
+                placeholder="What needs to be done? ✨" 
+                value={newTask} 
+                onChange={e => setNewTask(e.target.value)} 
+                onKeyPress={e => e.key === 'Enter' && handleAddTask()}
+              />
+              <button className="primary full-width" onClick={handleAddTask}>
+                ➕ Add New Task
+              </button>
+              <div className="filter-controls">
+                <div className="filter-group">
+                  <label>🔍 Filter Tasks</label>
+                  <input 
+                    className="task-input" 
+                    placeholder="Search tasks..." 
+                    value={filter} 
+                    onChange={e => setFilter(e.target.value)} 
+                  />
+                </div>
+                <div className="filter-group">
+                  <label>📊 Sort Order</label>
+                  <select className="task-input" value={sort} onChange={e => setSort(e.target.value)}>
+                    <option value="">Default Order</option>
+                    <option value="asc">A → Z (Ascending)</option>
+                    <option value="desc">Z → A (Descending)</option>
+                  </select>
+                </div>
               </div>
-              <ul className="task-list">
-                {filteredTasks.map((task) => (
-                  <li className="task-item" key={task._id}>
-                    {editId === task._id ? (
-                      <>
-                        <div className="task-text">
-                          <input value={editText} onChange={e => setEditText(e.target.value)} />
-                        </div>
-                        <div className="task-actions">
-                          <button onClick={handleUpdateTask}>Save</button>
-                          <button onClick={() => setEditId(null)}>Cancel</button>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="task-text">{task.text}</div>
-                        <div className="task-actions">
-                          <button onClick={() => handleEditTask(task._id)}>Edit</button>
-                          <button onClick={() => handleDeleteTask(task._id)}>Delete</button>
-                        </div>
-                      </>
-                    )}
-                  </li>
-                ))}
-              </ul>
+              {filteredTasks.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-icon">📝</div>
+                  <h3>No tasks yet!</h3>
+                  <p>Add your first task above to get started</p>
+                </div>
+              ) : (
+                <ul className="task-list">
+                  {filteredTasks.map((task, index) => (
+                    <li className="task-item" key={task._id} style={{animationDelay: `${index * 0.1}s`}}>
+                      {editId === task._id ? (
+                        <>
+                          <div className="task-text">
+                            <input 
+                              className="task-input" 
+                              value={editText} 
+                              onChange={e => setEditText(e.target.value)}
+                              onKeyPress={e => e.key === 'Enter' && handleUpdateTask()}
+                              autoFocus
+                            />
+                          </div>
+                          <div className="task-actions">
+                            <button onClick={handleUpdateTask}>💾 Save</button>
+                            <button onClick={() => setEditId(null)}>❌ Cancel</button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="task-text">
+                            <span className="task-number">#{index + 1}</span>
+                            {task.text}
+                          </div>
+                          <div className="task-actions">
+                            <button onClick={() => handleEditTask(task._id)}>✏️ Edit</button>
+                            <button onClick={() => handleDeleteTask(task._id)}>🗑️ Delete</button>
+                          </div>
+                        </>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
           <div>
             <div className="card">
-              <h3>Details</h3>
-              <p>Selected task details will appear here.</p>
+              <h3>📊 Task Analytics</h3>
+              <div className="details-panel">
+                <p><strong>Total Tasks:</strong> {tasks.length}</p>
+                <p><strong>Filtered Tasks:</strong> {filteredTasks.length}</p>
+                <p><strong>Completion Rate:</strong> 100%</p>
+              </div>
+              <div className="details-panel">
+                <p>💡 <em>Tip: Use the filter to quickly find your tasks!</em></p>
+              </div>
             </div>
           </div>
         </div>

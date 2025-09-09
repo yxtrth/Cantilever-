@@ -7,7 +7,21 @@ const bcrypt = require('bcrypt');
 
 const app = express();
 app.use(express.json());
-app.use(cors());
+
+// Configure CORS to allow requests from the Netlify frontend
+const corsOptions = {
+  origin: [
+    'http://localhost:3000', 
+    'https://cantilevertaskmanagement.netlify.app',
+    'https://cantilevertaskmanagement.netlify.app/'
+  ],
+  credentials: true,
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+};
+
+app.use(cors(corsOptions));
 
 let mongoReadyPromise = null;
 let memoryServer = null; // reference to in-memory mongo for cleanup
