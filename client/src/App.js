@@ -32,23 +32,31 @@ function App() {
 
   const handleRegister = async () => {
     setError('');
-    const res = await register(username, password);
-    if (res.success) {
-      handleLogin();
-    } else {
-      setError('Registration failed');
+    try {
+      const res = await register(username, password);
+      if (res.success) {
+        handleLogin();
+      } else {
+        setError(res.error || 'Registration failed. Please check your connection and try again.');
+      }
+    } catch (error) {
+      setError('Cannot connect to server. Please check your internet connection.');
     }
   };
 
   const handleLogin = async () => {
     setError('');
-    const res = await login(username, password);
-    if (res.token) {
-      setToken(res.token);
-      setUsername('');
-      setPassword('');
-    } else {
-      setError('Login failed');
+    try {
+      const res = await login(username, password);
+      if (res.token) {
+        setToken(res.token);
+        setUsername('');
+        setPassword('');
+      } else {
+        setError(res.error || 'Login failed. Please check your credentials and try again.');
+      }
+    } catch (error) {
+      setError('Cannot connect to server. Please check your internet connection.');
     }
   };
 
