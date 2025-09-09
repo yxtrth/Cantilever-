@@ -23,6 +23,9 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+// Handle preflight requests for all routes
+app.options('*', cors(corsOptions));
+
 let mongoReadyPromise = null;
 let memoryServer = null; // reference to in-memory mongo for cleanup
 // Helper function to check if a module exists
