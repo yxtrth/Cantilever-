@@ -1,5 +1,5 @@
 // Basic API functions for frontend
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+const API_URL = process.env.REACT_APP_API_URL || 'https://cantilevertask.onrender.com';
 
 function buildUrl(path, params = {}) {
   const url = new URL(`${API_URL}${path}`);
