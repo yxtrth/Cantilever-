@@ -55,9 +55,9 @@ export async function login(username, password) {
   }
 }
 
-export async function getTasks(token) {
-  // default call without filters
-  const res = await fetch(`${API_URL}/tasks`, {
+export async function getTasks(token, filter = '', sort = '') {
+  const url = buildUrl('/tasks', { q: filter, sort });
+  const res = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` }
   });
   return res.json();

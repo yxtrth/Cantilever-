@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import './App.css';
 import { register, login, getTasks, addTask, updateTask, deleteTask } from './api';
 
@@ -14,21 +14,25 @@ function App() {
   const [filter, setFilter] = useState('');
   const [sort, setSort] = useState('');
   const [error, setError] = useState('');
+  const [debouncedFilter, setDebouncedFilter] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedFilter(filter);
+    }, 300); // 300ms delay
+    return () => clearTimeout(timer);
+  }, [filter]);
 
   useEffect(() => {
     if (token) {
       // fetch tasks from server with current filter/sort
       const fetchTasks = async () => {
-        const url = new URL(process.env.REACT_APP_API_URL + '/tasks');
-        if (filter) url.searchParams.append('q', filter);
-        if (sort) url.searchParams.append('sort', sort);
-        const res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}` } });
-        const data = await res.json();
+        const data = await getTasks(token, debouncedFilter, sort);
         setTasks(data);
       };
       fetchTasks();
     }
-  }, [token, filter, sort]);
+  }, [token, debouncedFilter, sort]);
 
   const handleRegister = async () => {
     setError('');
@@ -67,10 +71,10 @@ function App() {
 
   const handleAddTask = async () => {
     if (!newTask.trim()) return;
-  const res = await addTask(token, newTask);
-  // refresh from server
-  const refreshed = await getTasks(token);
-  setTasks(refreshed);
+    await addTask(token, newTask);
+    // refresh from server with current filter/sort
+    const refreshed = await getTasks(token, debouncedFilter, sort);
+    setTasks(refreshed);
     setNewTask('');
   };
 
@@ -81,22 +85,20 @@ function App() {
   };
 
   const handleUpdateTask = async () => {
-  const res = await updateTask(token, editId, editText);
-  const refreshed = await getTasks(token);
-  setTasks(refreshed);
+    await updateTask(token, editId, editText);
+    const refreshed = await getTasks(token, debouncedFilter, sort);
+    setTasks(refreshed);
     setEditId(null);
     setEditText('');
   };
 
   const handleDeleteTask = async (id) => {
-  await deleteTask(token, id);
-  const refreshed = await getTasks(token);
-  setTasks(refreshed);
+    await deleteTask(token, id);
+    const refreshed = await getTasks(token, debouncedFilter, sort);
+    setTasks(refreshed);
   };
 
-  let filteredTasks = tasks.filter(t => t.text.toLowerCase().includes(filter.toLowerCase()));
-  if (sort === 'asc') filteredTasks = filteredTasks.sort((a, b) => a.text.localeCompare(b.text));
-  if (sort === 'desc') filteredTasks = filteredTasks.sort((a, b) => b.text.localeCompare(a.text));
+  const filteredTasks = tasks;
 
   return (
     <div className="app">
@@ -210,8 +212,7 @@ function App() {
             <div className="card">
               <h3>📊 Task Analytics</h3>
               <div className="details-panel">
-                <p><strong>Total Tasks:</strong> {tasks.length}</p>
-                <p><strong>Filtered Tasks:</strong> {filteredTasks.length}</p>
+                <p><strong>Showing Tasks:</strong> {filteredTasks.length}</p>
                 <p><strong>Completion Rate:</strong> 100%</p>
               </div>
               <div className="details-panel">
