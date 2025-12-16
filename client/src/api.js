@@ -18,6 +18,14 @@ export async function register(username, password) {
     });
     
     if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 409) {
+        return { success: false, error: data.error || 'User already exists' };
+      } else if (res.status === 400) {
+        return { success: false, error: data.error || 'Missing username or password' };
+      } else if (res.status === 500) {
+        return { success: false, error: 'Server error. Please try again later.' };
+      }
       throw new Error(`HTTP error! status: ${res.status}`);
     }
     
