@@ -15,6 +15,9 @@ function App() {
   const [sort, setSort] = useState('');
   const [error, setError] = useState('');
   const [debouncedFilter, setDebouncedFilter] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [taskLoading, setTaskLoading] = useState(false);
+  const [operationLoading, setOperationLoading] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -27,8 +30,16 @@ function App() {
     if (token) {
       // fetch tasks from server with current filter/sort
       const fetchTasks = async () => {
-        const data = await getTasks(token, debouncedFilter, sort);
-        setTasks(data);
+        setTaskLoading(true);
+        try {
+          const data = await getTasks(token, debouncedFilter, sort);
+          setTasks(data);
+        } catch (error) {
+          console.error('Failed to fetch tasks:', error);
+          setError('Failed to load tasks. Please refresh the page.');
+        } finally {
+          setTaskLoading(false);
+        }
       };
       fetchTasks();
     }
@@ -36,20 +47,24 @@ function App() {
 
   const handleRegister = async () => {
     setError('');
+    setLoading(true);
     try {
       const res = await register(username, password);
       if (res.success) {
-        handleLogin();
+        await handleLogin();
       } else {
         setError(res.error || 'Registration failed. Please check your connection and try again.');
       }
     } catch (error) {
       setError('Cannot connect to server. Please check your internet connection.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleLogin = async () => {
     setError('');
+    setLoading(true);
     try {
       const res = await login(username, password);
       if (res.token) {
@@ -61,6 +76,8 @@ function App() {
       }
     } catch (error) {
       setError('Cannot connect to server. Please check your internet connection.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -70,12 +87,19 @@ function App() {
   };
 
   const handleAddTask = async () => {
-    if (!newTask.trim()) return;
-    await addTask(token, newTask);
-    // refresh from server with current filter/sort
-    const refreshed = await getTasks(token, debouncedFilter, sort);
-    setTasks(refreshed);
-    setNewTask('');
+    if (!newTask.trim() || operationLoading) return;
+    setOperationLoading(true);
+    try {
+      await addTask(token, newTask);
+      // refresh from server with current filter/sort
+      const refreshed = await getTasks(token, debouncedFilter, sort);
+      setTasks(refreshed);
+      setNewTask('');
+    } catch (error) {
+      setError('Failed to add task. Please try again.');
+    } finally {
+      setOperationLoading(false);
+    }
   };
 
   const handleEditTask = async (id) => {
@@ -85,17 +109,33 @@ function App() {
   };
 
   const handleUpdateTask = async () => {
-    await updateTask(token, editId, editText);
-    const refreshed = await getTasks(token, debouncedFilter, sort);
-    setTasks(refreshed);
-    setEditId(null);
-    setEditText('');
+    if (operationLoading) return;
+    setOperationLoading(true);
+    try {
+      await updateTask(token, editId, editText);
+      const refreshed = await getTasks(token, debouncedFilter, sort);
+      setTasks(refreshed);
+      setEditId(null);
+      setEditText('');
+    } catch (error) {
+      setError('Failed to update task. Please try again.');
+    } finally {
+      setOperationLoading(false);
+    }
   };
 
   const handleDeleteTask = async (id) => {
-    await deleteTask(token, id);
-    const refreshed = await getTasks(token, debouncedFilter, sort);
-    setTasks(refreshed);
+    if (operationLoading) return;
+    setOperationLoading(true);
+    try {
+      await deleteTask(token, id);
+      const refreshed = await getTasks(token, debouncedFilter, sort);
+      setTasks(refreshed);
+    } catch (error) {
+      setError('Failed to delete task. Please try again.');
+    } finally {
+      setOperationLoading(false);
+    }
   };
 
   const filteredTasks = tasks;
@@ -126,8 +166,12 @@ function App() {
             onChange={e => setPassword(e.target.value)} 
           />
           <div className="auth-buttons">
-            <button className="btn-register" onClick={handleRegister}>Create Account</button>
-            <button className="btn-login" onClick={handleLogin}>Sign In</button>
+            <button className="btn-register" onClick={handleRegister} disabled={loading}>
+              {loading ? 'Creating...' : 'Create Account'}
+            </button>
+            <button className="btn-login" onClick={handleLogin} disabled={loading}>
+              {loading ? 'Signing In...' : 'Sign In'}
+            </button>
           </div>
         </div>
       ) : (
@@ -142,8 +186,8 @@ function App() {
                 onChange={e => setNewTask(e.target.value)} 
                 onKeyPress={e => e.key === 'Enter' && handleAddTask()}
               />
-              <button className="primary full-width" onClick={handleAddTask}>
-                ➕ Add New Task
+              <button className="primary full-width" onClick={handleAddTask} disabled={operationLoading}>
+                {operationLoading ? 'Adding...' : '➕ Add New Task'}
               </button>
               <div className="filter-controls">
                 <div className="filter-group">
@@ -164,7 +208,12 @@ function App() {
                   </select>
                 </div>
               </div>
-              {filteredTasks.length === 0 ? (
+              {taskLoading ? (
+                <div className="loading-state">
+                  <div className="loading-spinner"></div>
+                  <p>Loading tasks...</p>
+                </div>
+              ) : filteredTasks.length === 0 ? (
                 <div className="empty-state">
                   <div className="empty-icon">📝</div>
                   <h3>No tasks yet!</h3>
@@ -186,8 +235,10 @@ function App() {
                             />
                           </div>
                           <div className="task-actions">
-                            <button onClick={handleUpdateTask}>💾 Save</button>
-                            <button onClick={() => setEditId(null)}>❌ Cancel</button>
+                            <button onClick={handleUpdateTask} disabled={operationLoading}>
+                              {operationLoading ? 'Saving...' : '💾 Save'}
+                            </button>
+                            <button onClick={() => setEditId(null)} disabled={operationLoading}>❌ Cancel</button>
                           </div>
                         </>
                       ) : (
@@ -197,8 +248,10 @@ function App() {
                             {task.text}
                           </div>
                           <div className="task-actions">
-                            <button onClick={() => handleEditTask(task._id)}>✏️ Edit</button>
-                            <button onClick={() => handleDeleteTask(task._id)}>🗑️ Delete</button>
+                            <button onClick={() => handleEditTask(task._id)} disabled={operationLoading}>✏️ Edit</button>
+                            <button onClick={() => handleDeleteTask(task._id)} disabled={operationLoading}>
+                              {operationLoading ? 'Deleting...' : '🗑️ Delete'}
+                            </button>
                           </div>
                         </>
                       )}
