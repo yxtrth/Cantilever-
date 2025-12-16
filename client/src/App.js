@@ -173,7 +173,7 @@ function App() {
               ) : (
                 <ul className="task-list">
                   {filteredTasks.map((task, index) => (
-                    <li className="task-item" key={task._id} style={{animationDelay: `${index * 0.1}s`}}>
+                    <li className="task-item" key={task._id} style={{animationDelay: `${index * 0.02}s`}}>
                       {editId === task._id ? (
                         <>
                           <div className="task-text">
